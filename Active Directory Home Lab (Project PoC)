@@ -1,0 +1,73 @@
+
+
+📖 Project Overview
+This project documents the deployment of a functional, virtualized enterprise network environment using **Oracle VirtualBox**. The objective was to simulate a real-world corporate IT infrastructure to develop practical skills in Windows Server administration, Active Directory Domain Services (AD DS), and Group Policy management.
+
+🛠️ Technologies & Tools Used
+*   Hypervisor: Oracle VirtualBox
+*   Server OS: Windows Server 2022 (Evaluation)
+*   Client OS: Windows 11 Enterprise (Evaluation)
+*   Roles & Features: Active Directory Domain Services (AD DS), DNS, Group Policy Management
+*   Networking: VirtualBox NAT Network
+
+
+🧠 My Understanding & Design Choices
+Before deploying, I established the following design parameters to mimic an enterprise environment:
+1.  Domain Name: I chose `ToonWrld.local` to simulate a standard internal corporate domain.
+2.  Organizational Units (OUs): I created specific OUs (`Business`, `Clinical`, `IT`) rather than leaving all users in the default `Users` container. This represents a real-world scalable structure where IT can apply policies to specific departments.
+3.  Security Groups: I created global security groups (e.g., `IT Support`) to manage permissions rather than assigning permissions to individual users, following best practices.
+4.  Group Policy: I linked a GPO to a specific OU rather than the entire domain to ensure targeted policy enforcement.
+
+
+🚀 Step-by-Step Deployment
+
+Phase 1: Environment Provisioning
+1.  Network Setup: Opened VirtualBox Network Manager and created a NAT Network named `AD_HOME_LAB` (`10.52.3.0/24`) with DHCP enabled. This allows VMs to communicate with each other and access the internet.
+2.  VM Creation:
+    *   Created VM `DC02` (Windows Server 2022) with 4096 MB RAM, 2 CPUs, and a 50GB dynamically allocated VDI.
+    *   Created VM `Client01` (Windows 11) with 4096 MB RAM, 2 CPUs, and a 50GB VDI.
+    *   Assigned both to the `AD_HOME_LAB` NAT Network.
+
+Phase 2: Windows Installation
+1.  Mounted the Windows Server ISO to `DC02` and installed the **Standard (Desktop Experience)** version.
+2.  Mounted the Windows 11 ISO to `Client01` and completed the standard installation.
+
+Phase 3: Active Directory Configuration (DC02)
+1.  Renamed the server to `DC02` and restarted.
+2.  Installed the Active Directory Domain Services** role via Server Manager.
+3.  Promoted the server to a Domain Controller and created a new forest: `ToonWrld.local`.
+4.  Opened Active Directory Users and Computers (ADUC).
+5.  Created a new OU called `Departments`, and inside it, created sub-OUs for `Bussiness`, `Clinical`, and `IT`.
+6.  Created a Global Security Group named `IT Support` and a test User account inside the `IT` OU.
+
+Phase 4: Group Policy Implementation
+1.  Opened Group Policy Management.
+2.  Right-clicked the `IT` OU and created a new GPO named `Pied Piper Banner`.
+3.  Edited the GPO to enforce a login banner for all users in that specific department.
+4.  Verified the GPO was linked and enforced in the `IT` OU scope.
+
+---
+
+ Challenges, Errors & Troubleshooting
+
+
+❌ Issue 1: Missing Hard Drive During Windows Setup
+The Problem: Windows Server setup threw an error: "There is an error selecting this partition for install". The installer could not see the virtual hard drive.
+The Fix: The VirtualBox default SATA controller (AHCI) was not recognized by the Windows installer. I shut down the VM, navigated to Settings > Storage, changed the controller type to PIIX4 (IDE), and reattached the `.vdi` disk. 
+
+❌ Issue 2: The "Press Any Key" Boot Loop
+The Problem: The VM would boot to a black screen saying "Press any key to boot from CD or DVD" and then fail with a `BdsDxe` boot error.
+The Fix: VirtualBox was not capturing my keyboard input in time. When starting the VM, I clicked directly inside the black window and spammed the Spacebar to ensure the VM caught the command to boot from the ISO.
+
+❌ Issue 3: Windows 11 Black Screen / "Just a moment..." Hang
+The Problem: After installing Windows 11, the VM would freeze on a black screen or hang indefinitely during the initial setup phase.
+The Fix: This is a known VirtualBox bug with Windows 11 resource allocation. I powered off the VM, went to Settings > System > Processor, and changed the CPU count from 2 to 4. I also went to **Settings > Display and changed the Graphics Controller to VBoxVGA.
+
+❌ Issue 4: Missing Host-Only Network Driver
+The Problem: VirtualBox threw an error: "Could not find Host Interface Networking driver! Please reinstall."
+The Fix: The virtual network driver was missing from the Windows host OS. I manually navigated to `C:\Program Files\Oracle\VirtualBox\drivers\network\netadp6\`, right-clicked the `VBoxNetAdp6.inf` file, and selected Install to register the driver.
+
+❌ Issue 5: Explorer Freezing on Network Properties
+The Problem: Attempting to open the TCP/IPv4 properties to change the DNS settings caused Windows Explorer to hang endlessly.
+The Fix: I used `Ctrl + Shift + Esc` to open Task Manager, found **Windows Explorer**, and restarted the process. I also ensured that `Client01` was powered off while editing `DC02` to reduce CPU load on the host machine.
+
